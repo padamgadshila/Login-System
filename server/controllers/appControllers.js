@@ -1,4 +1,5 @@
 import userModel from "../model/userModel.js";
+import bcrypt from "bcrypt";
 
 /**
  *  POST : http://localhost:8000/api/register
@@ -11,27 +12,41 @@ import userModel from "../model/userModel.js";
     "mobile":4587412564,
     "address":"pune",
     "profile":""
- * }
+  }
  */
 export async function register(req, res) {
   try {
     const { username, password, email, profile } = req.body;
 
-    const ifUserExists = await userModel.findOne({ username });
+    const existingUser = await userModel.findOne({
+      $or: [{ username }, { email }],
+    });
 
-    if (ifUserExists) {
-      return res.status(401).json({ error: "username already taken" });
+    if (existingUser) {
+      if (existingUser.username === username) {
+        return res.status(409).json({ error: "username already taken" });
+      }
+      if (existingUser.email === email) {
+        return res.status(409).json({ error: "email already taken" });
+      }
     }
 
-    const ifUserEmailExists = await userModel.findOne({ email });
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    if (ifUserEmailExists) {
-      return res.status(401).json({ error: "email already taken" });
-    }
+    const user = new userModel({
+      username,
+      password: hashedPassword,
+      email,
+      profile,
+    });
 
-    console.log(username, password, email, profile);
+    const savedUser = await user.save();
+    console.log(savedUser);
+    return res.status(201).json({ message: "user registered successfully" });
   } catch (error) {
-    return res.status(500).send(error);
+    console.error(error);
+
+    return res.status(500).json({ error: "Internal server error" });
   }
 }
 
@@ -43,7 +58,9 @@ export async function register(req, res) {
  * }
  */
 export async function login(req, res) {
-  res.json("login route");
+  const { username, password } = req.body;
+
+  console.log(username, password);
 }
 
 /**
