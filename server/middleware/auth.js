@@ -1,8 +1,9 @@
 import jwt from "jsonwebtoken";
-let Auth = async (req, res, next) => {
+import { secret } from "../config.js";
+export const Auth = async (req, res, next) => {
   try {
     const token = req.headers.authorization.split(" ")[1];
-    const result = jwt.verify(token, process.env.jwt_key);
+    const result = jwt.verify(token, secret.jwt_key);
     req.user = result;
     next();
   } catch (error) {
@@ -12,4 +13,10 @@ let Auth = async (req, res, next) => {
   }
 };
 
-export default Auth;
+export const localVariables = async (req, res, next) => {
+  req.app.locals = {
+    OTP: null,
+    resetSession: false,
+  };
+  next();
+};
