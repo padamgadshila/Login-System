@@ -1,6 +1,7 @@
 import userModel from "../model/userModel.js";
 import bcrypt from "bcrypt";
-
+import Jwt from "jsonwebtoken";
+const KEY = "ThisIsMySecretKeyWhichYouCanNeverGuess";
 /**
  *  POST : http://localhost:8000/api/register
     @param :{
@@ -59,8 +60,41 @@ export async function register(req, res) {
  */
 export async function login(req, res) {
   const { username, password } = req.body;
+  try {
+    const checkUserExist = await userModel.findOne({
+      $or: [{ username: username }, { email: username }],
+    });
 
-  console.log(username, password);
+    if (!checkUserExist) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const passwordMatch = await bcrypt.compare(
+      password,
+      checkUserExist.password
+    );
+
+    if (!passwordMatch) {
+      return res.status(401).json({ error: "Incorrect Password" });
+    }
+
+    const token = await Jwt.sign(
+      {
+        userId: checkUserExist.id,
+        username: checkUserExist.username,
+      },
+      KEY,
+      { expiresIn: "24h" }
+    );
+    return res.status(200).json({
+      message: "user logged in successfully",
+      username: checkUserExist.username,
+      token: token,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 }
 
 /**
