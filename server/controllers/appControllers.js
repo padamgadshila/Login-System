@@ -2,6 +2,24 @@ import userModel from "../model/userModel.js";
 import bcrypt from "bcrypt";
 import Jwt from "jsonwebtoken";
 const KEY = "ThisIsMySecretKeyWhichYouCanNeverGuess";
+
+// Verify
+
+export const verifyUser = async (req, res, next) => {
+  try {
+    const { username } = req.method == "GET" ? req.query : req.body;
+    let exists = await userModel.findOne({ username });
+    if (!exists) {
+      return res.status(404).json({ error: "Can't find the user!" });
+    }
+
+    next();
+  } catch (error) {
+    console.error(error);
+    return res.status(404).json({ error: "Authentication Error" });
+  }
+};
+
 /**
  *  POST : http://localhost:8000/api/register
     @param :{
@@ -78,7 +96,7 @@ export async function login(req, res) {
       return res.status(401).json({ error: "Incorrect Password" });
     }
 
-    const token = await Jwt.sign(
+    const token = Jwt.sign(
       {
         userId: checkUserExist.id,
         username: checkUserExist.username,
@@ -101,7 +119,20 @@ export async function login(req, res) {
  *  POST : http://localhost:8000/api/getUser
  */
 export async function getUser(req, res) {
-  res.json("get user");
+  const { username } = req.params;
+  try {
+    if (!username) {
+      return res.status(501).json({ error: "Invalid user" });
+    }
+
+    let user = await userModel.findOne({ username }).select("-password");
+
+    if (!user) return res.status(501).json({ error: "user not found" });
+    return res.status(201).send(user);
+  } catch (error) {
+    console.error(error);
+    return res.status(404).json({ error: "Cannot find the user data" });
+  }
 }
 
 export async function updateUser(req, res) {
