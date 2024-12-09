@@ -1,64 +1,59 @@
 import nodemailer from "nodemailer";
 import Mailgen from "mailgen";
-import { secret } from "../config.js";
+import { secret } from "../env.js";
+import { google } from "googleapis";
 
-// Nodemailer Configuration
-let nodeConfig = {
-  host: "smtp.ethereal.email",
-  port: 587,
-  secure: false, // true for port 465, false for other ports
-  auth: {
-    user: secret.email,
-    pass: secret.password,
-  },
-};
+const oAuth2Client = new google.auth.OAuth2(
+  secret.CLIENT_ID,
+  secret.CLIENT_SECRET,
+  secret.REDIRECT_URI
+);
 
-let transporter = nodemailer.createTransport(nodeConfig, {
-  debug: true, // Show debugging output
-  logger: true, // Log to console
-});
-
-// Mailgen Configuration
-let mailGenerator = new Mailgen({
-  theme: "default", // You can use "salted" or create a custom theme
-  product: { name: "Padam Gadshila", link: "http://localhost:3000/" },
-});
+oAuth2Client.setCredentials({ refresh_token: secret.REFRESH_TOKEN });
 
 export const registerMail = async (req, res) => {
   const { username, userEmail, text, subject } = req.body;
 
-  // Define the email content
-  let emailBody = {
-    body: {
-      name: username || "User",
-      intro: text || "Welcome to our service! We're thrilled to have you.",
-      action: {
-        instructions:
-          "Please click the button below to verify your email address:",
-        button: {
-          color: "#22BC66", // Optional button color
-          text: "Verify Email",
-          link: "https://yourcompany.com/verify", // Verification link
-        },
-      },
-      outro:
-        "If you have any questions, feel free to reply to this email. We're always happy to help.",
-    },
-  };
-
-  // Generate the email HTML content
-  let emailTemplate = mailGenerator.generate(emailBody);
-
-  let message = {
-    from: `"HRs" <${secret.email}>`,
-    to: userEmail,
-    subject: subject || "Welcome to Your Company",
-    html: emailTemplate, // Use Mailgen's generated HTML content
-  };
-
   try {
-    let done = await transporter.sendMail(message);
-    console.log("Email sent:", done.messageId);
+    const accessToken = await oAuth2Client.getAccessToken();
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        type: "OAuth2",
+        user: secret.EMAIL, // Your Gmail address
+        clientId: secret.CLIENT_ID,
+        clientSecret: secret.CLIENT_SECRET,
+        refreshToken: secret.REFRESH_TOKEN,
+        accessToken: accessToken.token,
+      },
+    });
+
+    const mailGenerator = new Mailgen({
+      theme: "default",
+      product: {
+        name: "Your App Name",
+        link: "https://yourapp.com",
+      },
+    });
+
+    const emailBody = mailGenerator.generate({
+      body: {
+        name: username || "User",
+        intro: `${text} is your otp,`,
+        outro: "Looking forward to serving you.",
+      },
+    });
+
+    const mailOptions = {
+      from: secret.EMAIL,
+      to: userEmail,
+      subject: subject || "Password Reset!",
+      html: emailBody,
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log("Email sent:", result.messageId);
 
     return res.status(201).send({ message: "Email sent successfully!" });
   } catch (error) {

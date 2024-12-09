@@ -2,7 +2,7 @@ import userModel from "../model/userModel.js";
 import bcrypt from "bcrypt";
 import Jwt from "jsonwebtoken";
 import otpGenerator from "otp-generator";
-import { secret } from "../config.js";
+import { secret } from "../env.js";
 // Verify
 
 export const verifyUser = async (req, res, next) => {
