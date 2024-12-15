@@ -7,7 +7,9 @@ const router = Router();
 // post
 router.route("/register").post(controllers.register);
 router.route("/registerMail").post(registerMail);
-router.route("/authenticate").post();
+router
+  .route("/authenticate")
+  .post(controllers.verifyUser, (req, res) => res.end());
 router.route("/login").post(controllers.login);
 // get
 router.route("/user/:username").get(controllers.getUser);

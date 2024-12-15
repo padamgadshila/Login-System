@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { secret } from "../env.js
+import { secret } from "../env.js";
 export const Auth = async (req, res, next) => {
   try {
     const token = req.headers.authorization.split(" ")[1];

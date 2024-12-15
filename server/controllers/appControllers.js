@@ -42,10 +42,10 @@ export async function register(req, res) {
 
     if (existingUser) {
       if (existingUser.username === username) {
-        return res.status(409).json({ error: "username already taken" });
+        return res.status(409).send({ error: "username already taken" });
       }
       if (existingUser.email === email) {
-        return res.status(409).json({ error: "email already taken" });
+        return res.status(409).send({ error: "email already taken" });
       }
     }
 
@@ -60,11 +60,11 @@ export async function register(req, res) {
 
     const savedUser = await user.save();
     console.log(savedUser);
-    return res.status(201).json({ message: "user registered successfully" });
+    return res.status(201).send({ message: "Registered successfully" });
   } catch (error) {
     console.error(error);
 
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).send({ error: "Internal server error" });
   }
 }
 
